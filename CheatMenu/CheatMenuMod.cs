@@ -9,18 +9,29 @@ using SpaceWarp.API.Toolbar;
 using SpaceWarp.API;
 using KSP.UI.Binding;
 using Shapes;
+using KSP.Sim.impl;
+using KSP.Iteration.UI.Binding;
+using KSP.Sim.ResourceSystem;
+using Mono.Cecil;
+using static KSP.Api.UIDataPropertyStrings.View.Vessel.Stages;
 
 namespace CheatMenu
 {
     [MainMod]
      public class CheatMenuMod : Mod
     {
-        private int windowWidth = 350;
+        private int windowWidth = 700;
         private int windowHeight = 700;
         private Rect windowRect;
         private static GUIStyle boxStyle;
         private bool showUI = false;
         private GUISkin _spaceWarpUISkin;
+        private static Vector2 partScrollPosition;
+        private static Vector2 resourceScrollPosition;
+        private static int selectedItem = 0;
+        private static PartComponent selectedPart;
+        private static ContainedResourceData selectedResource;
+        private static double resourceValue = 0;
         public override void OnInitialized()
         {
             ResourceManager.TryGetAsset($"space_warp/swconsoleui/swconsoleUI/spacewarpConsole.guiskin", out _spaceWarpUISkin);
@@ -56,17 +67,13 @@ namespace CheatMenu
                     FillWindow,
                     "Cheat Menu",
                     GUILayout.Height(0),
-                    GUILayout.Width(500));
+                    GUILayout.Width(700));
             }
         }
 
-        private void FillWindow(int windowID)
+        void BasicCheats()
         {
             boxStyle = GUI.skin.GetStyle("Box");
-            GUILayout.BeginVertical();
-
-            GUILayout.Label($"Active Vessel: {GameManager.Instance.Game.ViewController.GetActiveSimVessel().DisplayName}");
-
             GUILayout.BeginHorizontal();
             GUILayout.Label($"No crash damage: {GameManager.Instance.Game.CheatSystem.GetNoCrashDamage()}", GUILayout.Width(windowWidth / 2));
             if (GUILayout.Button("Toggle"))
@@ -120,6 +127,87 @@ namespace CheatMenu
             if (GUILayout.Button("Toggle"))
                 EasyCheatToggle(9);
             GUILayout.EndHorizontal();
+        }
+        void VesselCheats()
+        {
+            boxStyle = GUI.skin.GetStyle("Box");
+            GUILayout.BeginHorizontal();
+            GUILayout.Label($"Fill all resources", GUILayout.Width(windowWidth / 2));
+            if (GUILayout.Button("Fill All"))
+                EasyCheatSet(1, 0);
+            GUILayout.EndHorizontal();
+            GUILayout.BeginHorizontal();
+            GUILayout.Label($"Fill part resource", GUILayout.Width(windowWidth / 4));
+            GUILayout.BeginVertical(boxStyle);
+            var parts = GameManager.Instance.Game.ViewController.GetActiveVehicle().GetSimulationObject().PartOwner.Parts.ToList();
+            partScrollPosition = GUILayout.BeginScrollView(partScrollPosition, false, true, GUILayout.Height(150));
+            foreach (var part in parts)
+            {
+                if (GUILayout.Button(part.Name))
+                {
+                    selectedPart = part;
+                }
+            }
+            GUILayout.EndScrollView();
+            GUILayout.EndVertical();
+            GUILayout.BeginVertical(boxStyle);
+            if (selectedPart == null)
+            {
+                selectedPart = parts.First();
+            }
+            var resources = selectedPart.PartResourceContainer.GetAllResourcesContainedData();
+            resourceScrollPosition = GUILayout.BeginScrollView(resourceScrollPosition, false, true, GUILayout.Height(150));
+            
+            foreach (var resource in resources)
+            {
+                if (GUILayout.Button(resource.ResourceID.Value.ToString()))
+                {
+                    selectedResource = resource;
+                }
+            }
+            GUILayout.EndScrollView();
+            GUILayout.EndVertical();
+            
+            if(selectedResource.ResourceID == null)
+            {
+                selectedResource = resources.First();
+            }
+            GUILayout.EndHorizontal();
+            GUILayout.BeginHorizontal();
+            GUILayout.BeginVertical(boxStyle);
+
+            if (GUILayout.Button("get"))
+            {
+                resourceValue = selectedResource.CapacityUnits;
+            }
+            resourceValue = double.Parse(GUILayout.TextField($"{resourceValue}"));
+            if (GUILayout.Button("Set"))
+                EasyCheatSet(2, resourceValue);
+            GUILayout.EndVertical();
+            GUILayout.EndHorizontal();
+        }
+        private void FillWindow(int windowID)
+        {
+            
+            string[] menuOptions = { "Basic","Vessel" };
+            selectedItem = GUILayout.SelectionGrid(selectedItem, menuOptions,2);
+            boxStyle = GUI.skin.GetStyle("Box");
+            GUILayout.BeginVertical();
+
+            GUILayout.Label($"Active Vessel: {GameManager.Instance.Game.ViewController.GetActiveSimVessel().DisplayName}");
+
+            switch (selectedItem)
+            {
+                case 0:
+                    BasicCheats();
+                    break;
+                case 1:
+                    VesselCheats();
+                    break;
+                default:
+                    BasicCheats();
+                    break;
+            }
 
             GUILayout.EndVertical();
             GUI.DragWindow(new Rect(0, 0, 10000, 500));
@@ -166,7 +254,7 @@ namespace CheatMenu
                     GameManager.Instance.Game.ViewController.GetActiveVehicle().GetSimulationObject().PartOwner.Parts.ForEach(part => part.PartResourceContainer.FillAllResourcesToCapacity());
                     break;
                 case 2:
-                    GameManager.Instance.Game.ViewController.GetActiveVehicle().GetSimulationObject().PartOwner.Parts.ForEach(part => part.PartResourceContainer.GetAllResourcesContainedData().ForEach(Cdata => part.PartResourceContainer.SetResourceStoredUnits(Cdata.ResourceID, value)));
+                    selectedPart.PartResourceContainer.SetResourceStoredUnits(selectedResource.ResourceID, value);
                     break;
 
             }
