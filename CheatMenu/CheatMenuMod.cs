@@ -13,7 +13,6 @@ using KSP.Game;
 using DragManipulator = CheatMenu.UI.DragManipulator;
 using KSP.Sim.impl;
 using KSP.Sim.ResourceSystem;
-using Newtonsoft.Json;
 
 namespace CheatMenu
 {
@@ -620,6 +619,7 @@ namespace CheatMenu
                     if (SelectedKerbalInt > 0)
                     {
                         selectedKerbal = KerbalList[SelectedKerbalInt];
+                        logger.Log($"{selectedKerbal.Attributes.Attributes.Values}");
                     }
                     SetSelectdMenu(SelectedMenu);
                 });
@@ -629,7 +629,7 @@ namespace CheatMenu
                     selectedKerbal.Attributes.Attributes.ToList().ForEach((skevt) => {
                         logger.Debug($"{skevt.Key} {skevt.Value.valueType} {skevt.Value.value} {skevt.Value.attachToName}");
                     });
-
+                    
                     Color kerbalColor = (Color)selectedKerbal.Attributes.GetAttribute("SKINCOLOR");
                     Label CheatMenuKerbalLabels_KerbalName_Label = Element.Label("KerbalName", "First Name");
                     CheatMenuKerbalLabels_KerbalName_Label.style.fontSize = fontsizeLabel;
@@ -886,8 +886,8 @@ namespace CheatMenu
                 CheatMenu.style.borderLeftColor = new StyleColor(new Color32(67, 81, 89, 255));
                 CheatMenu.style.borderTopColor = new StyleColor(new Color32(67, 81, 89, 255));
                 CheatMenu.style.borderBottomColor = new StyleColor(new Color32(67, 81, 89, 255));
-                CheatMenu.style.left = manager.arbitrary_Limitation_because_of_an_update_to_uitk_that_limits_screen_size_due_to_space_warp_being_shit___Width / 1.5f;
-                CheatMenu.style.top = manager.arbitrary_Limitation_because_of_an_update_to_uitk_that_limits_screen_size_due_to_space_warp_being_shit___height / 4;
+                CheatMenu.style.left = manager.WidthScaleLimit / 1.5f;
+                CheatMenu.style.top = manager.HeightScaleLimit / 4;
                 CheatMenu.style.backgroundImage = AssetManager.GetAsset<Texture2D>($"{SpaceWarpMetadata.ModID}/images/Background1.png");
 
                 Button CheatMenuButtonVessel = Element.Button("CheatMenuButtonVessel", $"Vessel");
@@ -1015,7 +1015,7 @@ namespace CheatMenu
                 CheatMenu.Add(CheatMenuOptionsList);
 
                 UIDocument window = Window.CreateFromElement(CheatMenu);
-                manager.Add("CheatMenu", window);
+                manager.Add("CheatMenu", window, false);
             }
             catch (Exception e)
             {
